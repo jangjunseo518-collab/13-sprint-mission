@@ -24,6 +24,8 @@ public enum ErrorCode {
   BINARY_CONTENT_READ_FAILED("파일을 읽는 중 오류가 발생했습니다."),
 
   INVALID_CREDENTIALS("아이디 또는 비밀번호가 올바르지 않습니다."),
+  INVALID_REFRESH_TOKEN("유효하지 않은 리프레시 토큰입니다."),
+
 
   UNAUTHENTICATED("인증이 필요합니다."),
   ACCESS_DENIED("권한이 없습니다.");

@@ -24,7 +24,8 @@ public class ErrorCodeStatusMapper {
       Map.entry(ErrorCode.BINARY_CONTENT_NOT_FOUND, HttpStatus.NOT_FOUND),
       Map.entry(ErrorCode.BINARY_CONTENT_READ_FAILED, HttpStatus.INTERNAL_SERVER_ERROR),
 
-      Map.entry(ErrorCode.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED)
+      Map.entry(ErrorCode.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED),
+      Map.entry(ErrorCode.INVALID_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED)
   );
 
   private ErrorCodeStatusMapper() {

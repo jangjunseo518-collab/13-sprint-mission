@@ -2,11 +2,14 @@ package com.sprint.mission.discodeit.service;
 
 import com.sprint.mission.discodeit.dto.response.UserDto;
 import com.sprint.mission.discodeit.entity.Role;
+import com.sprint.mission.discodeit.security.JwtInformation;
 import java.util.UUID;
 
 public interface AuthService {
 
   UserDto updateRole(UUID userId, Role newRole);
+
+  JwtInformation refresh(String refreshToken);
 
 
 }
