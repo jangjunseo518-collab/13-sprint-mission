@@ -41,6 +41,7 @@ services:
       AWS_S3_REGION: ${AWS_S3_REGION}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET}
       AWS_S3_PRESIGNED_URL_EXPIRATION: ${AWS_S3_PRESIGNED_URL_EXPIRATION}
+      JWT_SECRET: ${JWT_SECRET}
     volumes:
       #DB와 동일하게 업드한 파일의 영속성을 보장하기 위해 컨테이너 외부 볼륨과 컨테이너 내부를 연결
       - app-storage:/app/.storage
