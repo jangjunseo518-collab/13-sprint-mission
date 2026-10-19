@@ -1,8 +1,10 @@
 package com.sprint.mission.discodeit.service.basic;
 
 import com.sprint.mission.discodeit.dto.request.ReadStatusCreateRequest;
+import com.sprint.mission.discodeit.dto.request.ReadStatusUpdateRequest;
 import com.sprint.mission.discodeit.dto.response.ReadStatusDto;
 import com.sprint.mission.discodeit.entity.Channel;
+import com.sprint.mission.discodeit.entity.ChannelType;
 import com.sprint.mission.discodeit.entity.ReadStatus;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.channel.ChannelNotFoundException;
@@ -47,8 +49,8 @@ public class BasicReadStatusService implements ReadStatusService {
       throw new ReadStatusAlreadyExistsException(request.userId(), request.channelId());
     }
 
-    ReadStatus readStatus = new ReadStatus(user, channel, Instant.now());
-    readStatusRepository.save(readStatus);
+    boolean notificationEnabled = channel.getType() == ChannelType.PRIVATE;
+    ReadStatus readStatus = new ReadStatus(user, channel, Instant.now(), notificationEnabled);
 
     log.info("ReadStatus 생성 완료 - readStatusId: {}", readStatus.getId());
     return readStatusMapper.toDto(readStatus);
@@ -82,12 +84,18 @@ public class BasicReadStatusService implements ReadStatusService {
 
   @Override
   @Transactional
-  public ReadStatusDto updateToNow(UUID readStatusId) {
+  public ReadStatusDto update(UUID readStatusId, ReadStatusUpdateRequest request) {
     log.info("ReadStatus 수정 요청 - readStatusId: {}", readStatusId);
 
     ReadStatus readStatus = readStatusRepository.findById(readStatusId)
         .orElseThrow(() -> new ReadStatusNotFoundException(readStatusId));
-    readStatus.updateLastReadAt(Instant.now());
+
+    if (request.newLastReadAt() != null) {
+      readStatus.updateLastReadAt(request.newLastReadAt());
+    }
+    if (request.newNotificationEnabled() != null) {
+      readStatus.updateNotificationEnabled(request.newNotificationEnabled());
+    }
 
     log.info("ReadStatus 수정 완료 - readStatusId: {}", readStatusId);
     return readStatusMapper.toDto(readStatus);

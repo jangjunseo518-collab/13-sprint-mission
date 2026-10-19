@@ -2,6 +2,8 @@ package com.sprint.mission.discodeit.service.basic;
 
 import com.sprint.mission.discodeit.dto.response.BinaryContentDto;
 import com.sprint.mission.discodeit.entity.BinaryContent;
+import com.sprint.mission.discodeit.entity.BinaryContentStatus;
+import com.sprint.mission.discodeit.event.BinaryContentCreatedEvent;
 import com.sprint.mission.discodeit.exception.binarycontent.BinaryContentNotFoundException;
 import com.sprint.mission.discodeit.mapper.BinaryContentMapper;
 import com.sprint.mission.discodeit.repository.BinaryContentRepository;
@@ -11,7 +13,9 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -22,6 +26,7 @@ public class BasicBinaryContentService implements BinaryContentService {
   private final BinaryContentRepository binaryContentRepository;
   private final BinaryContentMapper binaryContentMapper;
   private final BinaryContentStorage binaryContentStorage;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional
@@ -30,7 +35,8 @@ public class BasicBinaryContentService implements BinaryContentService {
 
     BinaryContent binaryContent = new BinaryContent(fileName, size, contentType);
     binaryContentRepository.save(binaryContent);
-    binaryContentStorage.put(binaryContent.getId(), bytes);
+    eventPublisher.publishEvent(
+        new BinaryContentCreatedEvent(binaryContent.getId(), bytes));
 
     log.info("BinaryContent 생성 완료 - id: {}", binaryContent.getId());
     return binaryContentMapper.toDto(binaryContent);
@@ -59,6 +65,20 @@ public class BasicBinaryContentService implements BinaryContentService {
     return allByIdIn.stream()
         .map(binaryContentMapper::toDto).toList();
   }
+
+  @Override
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public BinaryContentDto updateStatus(UUID binaryContentId, BinaryContentStatus status) {
+    log.info("BinaryContent 상태 변경 요청 - id: {}, status: {}", binaryContentId, status);
+
+    BinaryContent binaryContent = binaryContentRepository.findById(binaryContentId)
+        .orElseThrow(() -> new BinaryContentNotFoundException(binaryContentId));
+    binaryContent.updateStatus(status);
+
+    log.info("BinaryContent 상태 변경 완료 - id: {}, status: {}", binaryContentId, status);
+    return binaryContentMapper.toDto(binaryContent);
+  }
+
 
   @Override
   @Transactional

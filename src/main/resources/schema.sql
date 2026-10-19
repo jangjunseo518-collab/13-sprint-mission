@@ -1,10 +1,13 @@
 CREATE TABLE binary_contents
 (
-    id           UUID PRIMARY KEY,    -- PRIMARY KEY는 NOT NULL,UNIQE포함
+    id           UUID PRIMARY KEY,
     created_at   TIMESTAMPTZ  NOT NULL,
+    updated_at   TIMESTAMPTZ,
     file_name    VARCHAR(255) NOT NULL,
     size         BIGINT       NOT NULL,
-    content_type VARCHAR(100) NOT NULL--여기까지가 테이블의 구조
+    content_type VARCHAR(100) NOT NULL,
+    status       VARCHAR(20)  NOT NULL
+        CONSTRAINT chk_binary_contents_status CHECK (status IN ('PROCESSING', 'SUCCESS', 'FAIL'))
 );
 
 CREATE TABLE users
@@ -58,12 +61,13 @@ CREATE TABLE channels
 -- read_statuses
 CREATE TABLE read_statuses
 (
-    id           UUID PRIMARY KEY,
-    created_at   TIMESTAMPTZ NOT NULL,
-    updated_at   TIMESTAMPTZ,
-    user_id      UUID        NOT NULL,
-    channel_id   UUID        NOT NULL,
-    last_read_at TIMESTAMPTZ NOT NULL,
+    id                   UUID PRIMARY KEY,
+    created_at           TIMESTAMPTZ NOT NULL,
+    updated_at           TIMESTAMPTZ,
+    user_id              UUID        NOT NULL,
+    channel_id           UUID        NOT NULL,
+    last_read_at         TIMESTAMPTZ NOT NULL,
+    notification_enabled BOOLEAN     NOT NULL,
     CONSTRAINT fk_read_statuses_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT fk_read_statuses_channels FOREIGN KEY (channel_id) REFERENCES channels (id) ON DELETE CASCADE,
     CONSTRAINT uk_read_statuses UNIQUE (user_id, channel_id)
@@ -89,3 +93,18 @@ CREATE TABLE message_attachments
     CONSTRAINT fk_message_attachments_binary_contents FOREIGN KEY (attachment_id) REFERENCES binary_contents (id) ON DELETE CASCADE,
     PRIMARY KEY (message_id, attachment_id)
 );
+
+-- 알림
+CREATE TABLE notifications
+(
+    id          uuid PRIMARY KEY,
+    created_at  timestamp with time zone NOT NULL,
+    receiver_id uuid                     NOT NULL,
+    title       varchar(255)             NOT NULL,
+    content     text                     NOT NULL,
+    CONSTRAINT fk_notifications_receiver
+        FOREIGN KEY (receiver_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_notifications_receiver_id ON notifications (receiver_id);
+

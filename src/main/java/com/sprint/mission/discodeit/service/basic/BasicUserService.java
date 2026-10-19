@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,7 @@ public class BasicUserService implements UserService {
   private final PasswordEncoder passwordEncoder;
 
   @Override
+  @CacheEvict(value = "users", allEntries = true)
   @Transactional
   public UserDto create(String username, String email, String password, UUID profileId) {
     log.info("유저 생성 요청 - username: {}, email: {}", username, email);
@@ -73,6 +76,7 @@ public class BasicUserService implements UserService {
     return userMapper.toDto(user);
   }
 
+  @Cacheable(value = "users")
   @Override
   @Transactional(readOnly = true)
   public List<UserDto> findAll() {
@@ -87,6 +91,7 @@ public class BasicUserService implements UserService {
   }
 
   @Override
+  @CacheEvict(value = "users", allEntries = true)
   @Transactional
   public UserDto update(UUID userId, String newUsername, String newEmail, String newPassword,
       UUID newProfileId) {
@@ -107,6 +112,7 @@ public class BasicUserService implements UserService {
   }
 
   @Override
+  @CacheEvict(value = "users", allEntries = true)
   @Transactional
   public void delete(UUID userId) {
     log.info("유저 삭제 요청 - userId: {}", userId);

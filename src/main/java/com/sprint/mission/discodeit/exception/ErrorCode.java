@@ -26,6 +26,8 @@ public enum ErrorCode {
   INVALID_CREDENTIALS("아이디 또는 비밀번호가 올바르지 않습니다."),
   INVALID_REFRESH_TOKEN("유효하지 않은 리프레시 토큰입니다."),
 
+  NOTIFICATION_NOT_FOUND("존재하지 않는 알림입니다."),
+  NOTIFICATION_ACCESS_DENIED("본인의 알림만 삭제할 수 있습니다."),
 
   UNAUTHENTICATED("인증이 필요합니다."),
   ACCESS_DENIED("권한이 없습니다.");

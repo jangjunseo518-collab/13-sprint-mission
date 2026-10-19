@@ -9,6 +9,7 @@ import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.service.BinaryContentService;
 import com.sprint.mission.discodeit.service.UserService;
 import com.sprint.mission.discodeit.service.UserStatusService;
+import io.micrometer.core.annotation.Timed;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.Map;
@@ -36,6 +37,7 @@ public class UserController {
   private final UserStatusService userStatusService;
   private final BinaryContentService binaryContentService;
 
+  @Timed("user.create.async")
   @RequestMapping(method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<UserDto> create(
       @RequestPart(value = "profile", required = false) MultipartFile profile,

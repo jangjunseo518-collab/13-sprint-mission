@@ -3,7 +3,7 @@
 <configuration>
   <!-- 로그 출력 패턴을 변수로 정의 (아래서 재사용) -->
   <property name="LOG_PATTERN"
-    value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+    value="%d{yy-MM-dd HH:mm:ss.SSS} [%thread] [%X{requestId:-}] %-5level %logger{36} - %msg%n"/>
 
   <!-- 콘솔 출력용 appender -->
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

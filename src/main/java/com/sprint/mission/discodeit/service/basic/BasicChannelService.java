@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -40,6 +42,7 @@ public class BasicChannelService implements ChannelService {
 
   @Override
   @PreAuthorize("hasRole('CHANNEL_MANAGER')")
+  @CacheEvict(value = "channels", allEntries = true)
   @Transactional
   public ChannelDto createPublic(String name, String description) {
     log.info("PUBLIC 채널 생성 요청 - name: {}", name);
@@ -53,6 +56,7 @@ public class BasicChannelService implements ChannelService {
   }
 
   @Override
+  @CacheEvict(value = "channels", allEntries = true)
   @Transactional
   public ChannelDto createPrivate(List<UUID> participantIds) {
     log.info("PRIVATE 채널 생성 요청 - 참여자 수: {}", participantIds.size());
@@ -63,7 +67,7 @@ public class BasicChannelService implements ChannelService {
 
       User user = userRepository.findById(userId)
           .orElseThrow(() -> new UserNotFoundException(userId));
-      readStatusRepository.save(new ReadStatus(user, channel, Instant.now()));
+      readStatusRepository.save(new ReadStatus(user, channel, Instant.now(), true));
 
     }); //Instant.now(): 현재 시간을 Instant 타입으로 반환하는 메서드.
 
@@ -84,6 +88,7 @@ public class BasicChannelService implements ChannelService {
     return channelMapper.toDto(channel);
   }
 
+  @Cacheable(value = "channels", key = "#userId")
   @Override
   @Transactional(readOnly = true)
   public List<ChannelDto> findAllByUserId(UUID userId) {
@@ -105,6 +110,7 @@ public class BasicChannelService implements ChannelService {
 
   @Override
   @PreAuthorize("hasRole('CHANNEL_MANAGER')")
+  @CacheEvict(value = "channels", allEntries = true)
   @Transactional
   public ChannelDto update(UUID channelId, String newName, String newDescription) {
     log.info("채널 수정 요청 - channelId: {}", channelId);
@@ -122,6 +128,7 @@ public class BasicChannelService implements ChannelService {
   }
 
   @Override
+  @CacheEvict(value = "channels", allEntries = true)
   @Transactional
   public void delete(UUID channelId) {
     log.info("채널 삭제 요청 - channelId: {}", channelId);

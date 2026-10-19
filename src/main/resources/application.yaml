@@ -20,6 +20,12 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  cache:
+    type: caffeine
+    cache-names: channels, notifications, users
+    caffeine:
+      spec: maximumSize=100,expireAfterAccess=600s,recordStats
+
 discodeit:
   jwt:
     secret: ${JWT_SECRET}
@@ -63,12 +69,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, loggers
+        include: health, info, metrics, loggers, caches
   endpoint:
     health:
       show-details: always
   info:
     env:
+      enabled: true
+  observations:
+    annotations:
       enabled: true
 
 logging:
