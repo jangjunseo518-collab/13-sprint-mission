@@ -1,7 +1,13 @@
 package com.sprint.mission.discodeit.integration;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.mission.discodeit.dto.request.MessageCreateRequest;
@@ -21,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -62,7 +69,9 @@ class MessageIntegrationTest {
         objectMapper.writeValueAsBytes(request));
 
     // when & then
-    mockMvc.perform(multipart("/api/messages").file(requestPart))
+    mockMvc.perform(multipart("/api/messages").file(requestPart)
+            .with(csrf())
+            .with(TestAuth.admin()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.content").value("통합테스트 메시지"));
   }
@@ -80,7 +89,9 @@ class MessageIntegrationTest {
 
     // when & then
     mockMvc.perform(patch("/api/messages/{messageId}", message.getId())
-            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+            .with(csrf())
+            .with(TestAuth.admin())
+            .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").value("수정된내용"));
@@ -98,10 +109,12 @@ class MessageIntegrationTest {
     UUID messageId = message.getId();
 
     // when & then
-    mockMvc.perform(delete("/api/messages/{messageId}", messageId))
+    mockMvc.perform(delete("/api/messages/{messageId}", messageId)
+            .with(csrf())
+            .with(TestAuth.admin()))
         .andExpect(status().isNoContent());
 
-    org.assertj.core.api.Assertions.assertThat(messageRepository.findById(messageId)).isEmpty();
+    assertThat(messageRepository.findById(messageId)).isEmpty();
   }
 
   @Test
@@ -115,7 +128,9 @@ class MessageIntegrationTest {
     messageRepository.save(new Message("메시지1", author, channel));
 
     // when & then
-    mockMvc.perform(get("/api/messages").param("channelId", channel.getId().toString()))
+    mockMvc.perform(get("/api/messages")
+            .param("channelId", channel.getId().toString())
+            .with(TestAuth.admin()))
         .andExpect(status().isOk());
   }
 }

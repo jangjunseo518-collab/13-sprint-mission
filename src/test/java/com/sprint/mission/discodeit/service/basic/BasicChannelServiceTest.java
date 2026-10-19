@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.sprint.mission.discodeit.dto.response.ChannelDto;
+import com.sprint.mission.discodeit.dto.response.UserDto;
 import com.sprint.mission.discodeit.entity.Channel;
 import com.sprint.mission.discodeit.entity.ChannelType;
+import com.sprint.mission.discodeit.entity.Role;
 import com.sprint.mission.discodeit.exception.channel.ChannelNotFoundException;
 import com.sprint.mission.discodeit.exception.channel.PrivateChannelUpdateException;
 import com.sprint.mission.discodeit.exception.user.UserNotFoundException;
@@ -18,15 +21,21 @@ import com.sprint.mission.discodeit.repository.ChannelRepository;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import com.sprint.mission.discodeit.repository.ReadStatusRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
+import com.sprint.mission.discodeit.security.DiscodeitUserDetails;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(MockitoExtension.class)
 class BasicChannelServiceTest {
@@ -44,6 +53,21 @@ class BasicChannelServiceTest {
 
   @InjectMocks
   private BasicChannelService basicChannelService;
+
+  @AfterEach
+  void clearSecurityContext() {
+    SecurityContextHolder.clearContext();
+  }
+
+  private void setAuthentication(UUID userId, String role) {
+    DiscodeitUserDetails userDetails = mock(DiscodeitUserDetails.class);
+    UserDto userDto = new UserDto(userId, "tester", "tester@example.com", null, false, Role.USER);
+    given(userDetails.getUserDto()).willReturn(userDto);
+
+    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+        userDetails, null, List.of(new SimpleGrantedAuthority(role)));
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+  }
 
   @Test
   @DisplayName("PUBLIC 채널 생성 성공")
@@ -114,11 +138,13 @@ class BasicChannelServiceTest {
   }
 
   @Test
-  @DisplayName("채널 삭제 성공")
-  void delete_success() {
+  @DisplayName("채널 삭제 성공 - 공개 채널은 채널 관리자가 삭제할 수 있다")
+  void delete_success_publicChannel_manager() {
     // given
     UUID channelId = UUID.randomUUID();
-    given(channelRepository.existsById(channelId)).willReturn(true);
+    Channel channel = new Channel(ChannelType.PUBLIC, "general", "설명");
+    given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
+    setAuthentication(UUID.randomUUID(), "ROLE_CHANNEL_MANAGER");
 
     // when
     basicChannelService.delete(channelId);
@@ -132,11 +158,63 @@ class BasicChannelServiceTest {
   void delete_fail_channelNotFound() {
     // given
     UUID channelId = UUID.randomUUID();
-    given(channelRepository.existsById(channelId)).willReturn(false);
+    given(channelRepository.findById(channelId)).willReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> basicChannelService.delete(channelId))
         .isInstanceOf(ChannelNotFoundException.class);
+
+    verify(channelRepository, never()).deleteById(any());
+  }
+
+  @Test
+  @DisplayName("채널 삭제 실패 - 공개 채널은 일반 사용자가 삭제할 수 없다")
+  void delete_fail_publicChannel_notManager() {
+    // given
+    UUID channelId = UUID.randomUUID();
+    Channel channel = new Channel(ChannelType.PUBLIC, "general", "설명");
+    given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
+    setAuthentication(UUID.randomUUID(), "ROLE_USER");
+
+    // when & then
+    assertThatThrownBy(() -> basicChannelService.delete(channelId))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(channelRepository, never()).deleteById(any());
+  }
+
+  @Test
+  @DisplayName("채널 삭제 성공 - 비공개 채널은 참여자가 삭제할 수 있다")
+  void delete_success_privateChannel_participant() {
+    // given
+    UUID channelId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    Channel channel = new Channel(ChannelType.PRIVATE, null, null);
+    given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
+    given(readStatusRepository.existsByUser_IdAndChannel_Id(userId, channelId)).willReturn(true);
+    setAuthentication(userId, "ROLE_USER");
+
+    // when
+    basicChannelService.delete(channelId);
+
+    // then
+    verify(channelRepository).deleteById(channelId);
+  }
+
+  @Test
+  @DisplayName("채널 삭제 실패 - 비공개 채널은 참여자가 아니면 삭제할 수 없다")
+  void delete_fail_privateChannel_notParticipant() {
+    // given
+    UUID channelId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    Channel channel = new Channel(ChannelType.PRIVATE, null, null);
+    given(channelRepository.findById(channelId)).willReturn(Optional.of(channel));
+    given(readStatusRepository.existsByUser_IdAndChannel_Id(userId, channelId)).willReturn(false);
+    setAuthentication(userId, "ROLE_USER");
+
+    // when & then
+    assertThatThrownBy(() -> basicChannelService.delete(channelId))
+        .isInstanceOf(AccessDeniedException.class);
 
     verify(channelRepository, never()).deleteById(any());
   }

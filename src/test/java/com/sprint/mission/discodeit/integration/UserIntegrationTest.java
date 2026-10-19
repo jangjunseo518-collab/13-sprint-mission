@@ -1,11 +1,15 @@
 package com.sprint.mission.discodeit.integration;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.mission.discodeit.dto.request.UserCreateRequest;
-import com.sprint.mission.discodeit.dto.request.UserUpdateRequest;
 import com.sprint.mission.discodeit.entity.Role;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.repository.UserRepository;
@@ -45,14 +49,13 @@ class UserIntegrationTest {
         "userCreateRequest", "", "application/json",
         objectMapper.writeValueAsBytes(request));
 
-    // when & then
-    mockMvc.perform(multipart("/api/users").file(requestPart))
+    // when & then (POST /api/users 는 로그인 없이 허용, CSRF 토큰만 필요)
+    mockMvc.perform(multipart("/api/users").file(requestPart).with(csrf()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.username").value("integrationUser"));
 
     // DB에 실제 반영됐는지 확인
-    org.assertj.core.api.Assertions.assertThat(
-        userRepository.findByUserName("integrationUser")).isPresent();
+    assertThat(userRepository.findByUserName("integrationUser")).isPresent();
   }
 
   @Test
@@ -62,8 +65,8 @@ class UserIntegrationTest {
     // given
     userRepository.save(new User("listUser", "password1234!", "listuser@example.com", Role.USER));
 
-    // when & then
-    mockMvc.perform(get("/api/users"))
+    // when & then (조회는 로그인 필요)
+    mockMvc.perform(get("/api/users").with(TestAuth.admin()))
         .andExpect(status().isOk());
   }
 
@@ -76,10 +79,12 @@ class UserIntegrationTest {
         new User("deleteUser", "password1234!", "deleteuser@example.com", Role.USER));
     UUID userId = user.getId();
 
-    // when & then
-    mockMvc.perform(delete("/api/users/{userId}", userId))
+    // when & then (삭제는 로그인 + CSRF 토큰 필요)
+    mockMvc.perform(delete("/api/users/{userId}", userId)
+            .with(csrf())
+            .with(TestAuth.admin()))
         .andExpect(status().isNoContent());
 
-    org.assertj.core.api.Assertions.assertThat(userRepository.findById(userId)).isEmpty();
+    assertThat(userRepository.findById(userId)).isEmpty();
   }
 }

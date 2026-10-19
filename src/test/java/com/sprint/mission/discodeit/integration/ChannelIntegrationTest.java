@@ -1,7 +1,12 @@
 package com.sprint.mission.discodeit.integration;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.mission.discodeit.dto.request.ChannelUpdateRequest;
@@ -43,14 +48,16 @@ class ChannelIntegrationTest {
 
     // when & then
     mockMvc.perform(post("/api/channels/public")
+            .with(csrf())
+            .with(TestAuth.admin())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.name").value("통합테스트채널"));
 
-    org.assertj.core.api.Assertions.assertThat(
+    assertThat(
         channelRepository.findAll().stream()
-            .anyMatch(c -> c.getName().equals("통합테스트채널"))).isTrue();
+            .anyMatch(c -> "통합테스트채널".equals(c.getName()))).isTrue();
   }
 
   @Test
@@ -63,6 +70,8 @@ class ChannelIntegrationTest {
 
     // when & then
     mockMvc.perform(patch("/api/channels/{channelId}", channel.getId())
+            .with(csrf())
+            .with(TestAuth.admin())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -78,9 +87,11 @@ class ChannelIntegrationTest {
     UUID channelId = channel.getId();
 
     // when & then
-    mockMvc.perform(delete("/api/channels/{channelId}", channelId))
+    mockMvc.perform(delete("/api/channels/{channelId}", channelId)
+            .with(csrf())
+            .with(TestAuth.admin()))
         .andExpect(status().isNoContent());
 
-    org.assertj.core.api.Assertions.assertThat(channelRepository.findById(channelId)).isEmpty();
+    assertThat(channelRepository.findById(channelId)).isEmpty();
   }
 }

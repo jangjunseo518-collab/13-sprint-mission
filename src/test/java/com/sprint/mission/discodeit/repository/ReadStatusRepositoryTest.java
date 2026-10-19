@@ -37,7 +37,7 @@ class ReadStatusRepositoryTest {
     entityManager.persist(user);
     Channel channel = new Channel(ChannelType.PUBLIC, "공지", "설명");
     entityManager.persist(channel);
-    ReadStatus readStatus = new ReadStatus(user, channel, Instant.now());
+    ReadStatus readStatus = new ReadStatus(user, channel, Instant.now(), true);
     entityManager.persist(readStatus);
     entityManager.flush();
 
@@ -70,7 +70,7 @@ class ReadStatusRepositoryTest {
     for (int i = 0; i < 5; i++) {
       Channel channel = new Channel(ChannelType.PUBLIC, "채널" + i, "설명");
       entityManager.persist(channel);
-      entityManager.persist(new ReadStatus(user, channel, Instant.now()));
+      entityManager.persist(new ReadStatus(user, channel, Instant.now(), true));
     }
     entityManager.flush();
 
